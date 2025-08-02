@@ -1,0 +1,25 @@
+/* src/App.css */
+.container {
+  text-align: center;
+  padding: 50px;
+  font-family: Arial, sans-serif;
+}
+
+img {
+  width: 300px;
+  margin-top: 20px;
+}
+
+.menu button {
+  margin: 10px;
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background-color: #3e8e41;
+}
