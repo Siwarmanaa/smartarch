@@ -2,78 +2,51 @@ import React, { useState } from 'react';
 
 function Inscription({ apiBase, onSuccess }) {
   const [form, setForm] = useState({
-    email: '',
-    nom: '',
-    motdepasse: '',
-    date_de_naissance: '',
-    genre: 'Autre',
-    telephone: ''
+    email: '', nom: '', motdepasse: '',
+    naissance: '', genre: '', telephone: ''
   });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async () => {
-    setError(null);
-    if (!form.email || !form.nom || !form.motdepasse) {
-      setError("Email, nom et mot de passe sont requis.");
-      return;
-    }
     setBusy(true);
+    setError(null);
+
     try {
       const res = await fetch(`${apiBase}/inscription.php`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
       });
+
       const data = await res.json();
       if (data.success) {
-        // après inscription, on peut automatiquement connecter : refaire appel à connexion ou renvoyer user minimal
-        onSuccess({
-          email: form.email,
-          nom: form.nom,
-          date_de_naissance: form.date_de_naissance,
-          genre: form.genre,
-          telephone: form.telephone
-        });
+        onSuccess(data.utilisateur);
       } else {
-        setError(data.message || "Erreur inscription");
+        setError(data.message || "Erreur inconnue");
       }
     } catch (e) {
-      setError("Impossible de contacter le serveur.");
+      setError("Erreur de connexion au serveur");
     }
+
     setBusy(false);
   };
 
   return (
     <div>
-      <h2>Inscription</h2>
-      <div>
-        <input name="email" placeholder="Email" value={form.email} onChange={handleChange} /><br />
-        <input name="nom" placeholder="Nom" value={form.nom} onChange={handleChange} /><br />
-        <input name="motdepasse" type="password" placeholder="Mot de passe" value={form.motdepasse} onChange={handleChange} /><br />
-        <label>
-          Date de naissance: <br />
-          <input name="date_de_naissance" type="date" value={form.date_de_naissance} onChange={handleChange} />
-        </label><br />
-        <label>
-          Genre:
-          <select name="genre" value={form.genre} onChange={handleChange}>
-            <option>Homme</option>
-            <option>Femme</option>
-            <option>Autre</option>
-          </select>
-        </label><br />
-        <input name="telephone" placeholder="Téléphone" value={form.telephone} onChange={handleChange} /><br />
-        <button onClick={handleSubmit} disabled={busy}>
-          {busy ? "En cours..." : "S'inscrire"}
-        </button>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-      </div>
+      <h2>Créer un compte</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <input name="email" placeholder="Email" value={form.email} onChange={handleChange} /><br />
+      <input name="nom" placeholder="Nom" value={form.nom} onChange={handleChange} /><br />
+      <input name="motdepasse" placeholder="Mot de passe" type="password" value={form.motdepasse} onChange={handleChange} /><br />
+      <input name="naissance" placeholder="Date de naissance (jj/mm/aaaa)" value={form.naissance} onChange={handleChange} /><br />
+      <input name="genre" placeholder="Genre (Homme/Femme)" value={form.genre} onChange={handleChange} /><br />
+      <input name="telephone" placeholder="Téléphone" value={form.telephone} onChange={handleChange} /><br />
+      <button onClick={handleSubmit} disabled={busy}>S'inscrire</button>
     </div>
   );
 }

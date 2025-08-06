@@ -7,41 +7,61 @@ function Connexion({ apiBase, onLogin }) {
   const [busy, setBusy] = useState(false);
 
   const handleLogin = async () => {
+    setBusy(true);
     setError(null);
+
     if (!email || !motdepasse) {
-      setError("Email et mot de passe requis.");
+      setError("Veuillez remplir tous les champs");
+      setBusy(false);
       return;
     }
-    setBusy(true);
+
     try {
       const res = await fetch(`${apiBase}/connexion.php`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, motdepasse }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, motdepasse })
       });
+
+      if (!res.ok) {
+        setError("Erreur serveur, code " + res.status);
+        setBusy(false);
+        return;
+      }
+
       const data = await res.json();
+
       if (data.success) {
-        onLogin(data.utilisateur);
+        onLogin(data.user);  // <-- ici data.user, pas data.utilisateur
       } else {
-        setError(data.message || "Échec de la connexion");
+        setError(data.message || "Erreur de connexion");
       }
     } catch (e) {
-      setError("Impossible de contacter le serveur.");
+      setError("Impossible de contacter le serveur");
     }
+
     setBusy(false);
   };
 
   return (
     <div>
       <h2>Connexion</h2>
-      <div>
-        <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} /><br />
-        <input type="password" placeholder="Mot de passe" value={motdepasse} onChange={e => setMotdepasse(e.target.value)} /><br />
-        <button onClick={handleLogin} disabled={busy}>
-          {busy ? "Connexion..." : "Se connecter"}
-        </button>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-      </div>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <input
+        placeholder="Email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      /><br />
+      <input
+        placeholder="Mot de passe"
+        type="password"
+        value={motdepasse}
+        onChange={(e) => setMotdepasse(e.target.value)}
+      /><br />
+      <button onClick={handleLogin} disabled={busy}>
+        {busy ? "Connexion..." : "Se connecter"}
+      </button>
     </div>
   );
 }

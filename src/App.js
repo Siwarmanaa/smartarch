@@ -1,85 +1,149 @@
-import React, { useState, useEffect } from 'react';
-import Inscription from './Inscription';
-import Connexion from './Connexion';
+import React, { useState } from 'react';
 import Meteo from './Meteo';
 import Conseils from './Conseils';
+import Cultures from './Cultures'; 
 
-const API_BASE = "http://localhost/agrismart-api";
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [page, setPage] = useState('home'); // 'home', 'connexion', 'inscription', 'weather', 'conseils'
+  const [page, setPage] = useState('home'); // 'home', 'weather', 'conseils'
+  const nomUtilisateur = 'Siwar';
 
-  useEffect(() => {
-    const saved = localStorage.getItem("user");
-    if (saved) setUser(JSON.parse(saved));
-  }, []);
+  const renderHeader = () => (
+    <>
+      <h1 style={{ marginBottom: 10, fontWeight: 'bold', fontSize: '2.5rem' }}>
+        <span style={{ color: 'green' }}>🌱 Agri</span>
+        <span style={{ color: 'orange' }}>Smart</span>
+      </h1>
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-    setPage('home');
-  };
+      {/* eslint-disable-next-line jsx-a11y/img-redundant-alt */}
+      <img
+        src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.lKXHxUktB7AP2A0BE7ifQQHaFR%3Fpid%3DApi&f=1&ipt=3fefa774cab7ebcb7ba45acf3aab73abcf2515529eb707dc32d6a39ed458d958&ipo=images"
+        alt="Illustration agriculture"
+        style={{ width: 300, height: 'auto', marginBottom: 20, borderRadius: 10 }}
+      />
+    </>
+  );
 
-  const handleLoginSuccess = (utilisateur) => {
-    setUser(utilisateur);
-    localStorage.setItem("user", JSON.stringify(utilisateur));
-    setPage('home');
-  };
+  const renderButtons = () => (
+    <div style={{ marginBottom: 20 }}>
+      <button
+        onClick={() => setPage('weather')}
+        style={{
+          backgroundColor: 'green',
+          color: 'white',
+          padding: '10px 20px',
+          border: 'none',
+          marginRight: 10,
+          borderRadius: 5,
+          cursor: 'pointer'
+        }}
+      >
+        🌦️ Météo
+      </button>
+      <button
+        onClick={() => setPage('cultures')}
+        style={{
+          backgroundColor: 'green',
+          color: 'white',
+          padding: '10px 20px',
+          border: 'none',
+          marginRight: 10,
+          borderRadius: 5,
+          cursor: 'pointer'
+        }}
+      >
+        🌾 Cultures
+      </button>
 
-  if (!user) {
-    return (
-      <div className="container">
-        <h1>AgriSmart</h1>
-        <p>Connecte-toi ou crée un compte pour continuer.</p>
-        <div style={{ marginBottom: 16 }}>
-          <button onClick={() => setPage('connexion')} style={{ marginRight: 8 }}>Connexion</button>
-          <button onClick={() => setPage('inscription')}>Inscription</button>
-        </div>
-
-        {page === 'inscription' && (
-          <Inscription
-            apiBase={API_BASE}
-            onSuccess={(utilisateur) => handleLoginSuccess(utilisateur)}
-          />
-        )}
-        {page === 'connexion' && (
-          <Connexion
-            apiBase={API_BASE}
-            onLogin={(utilisateur) => handleLoginSuccess(utilisateur)}
-          />
-        )}
-      </div>
-    );
-  }
+      <button
+        onClick={() => setPage('conseils')}
+        style={{
+          backgroundColor: 'green',
+          color: 'white',
+          padding: '10px 20px',
+          border: 'none',
+          borderRadius: 5,
+          cursor: 'pointer'
+        }}
+      >
+        🌿 Conseils
+      </button>
+    </div>
+  );
 
   return (
-    <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <p>👋 Bienvenue {user.nom || user.email}</p>
-        </div>
-        <div>
-          <button onClick={handleLogout}>Déconnexion</button>
-        </div>
-      </div>
+    <div className="container" style={{ padding: 20, fontFamily: 'Arial' }}>
+      {renderHeader()}
 
-      <div style={{ marginTop: 16 }}>
-        <button onClick={() => setPage('weather')} style={{ marginRight: 8 }}>Météo</button>
-        <button onClick={() => setPage('conseils')}>Conseils</button>
-      </div>
+      {page === 'home' && (
+        <>
+          <h2>Bienvenue {nomUtilisateur} 🌾</h2>
+          <p>Votre assistant agricole intelligent est à votre service !</p>
+          <p>🌤️ Consultez la météo locale pour planifier votre journée</p>
+          <p>🌱 Découvrez des conseils agricoles adaptés à la saison</p>
+          {renderButtons()}
+        </>
+      )}
 
-      <div style={{ marginTop: 20 }}>
-        {page === 'weather' && <Meteo />}
-        {page === 'conseils' && <Conseils />}
-        {page === 'home' && (
-          <>
-            <h2>Tableau de bord</h2>
-            <p>Choisis une fonctionnalité.</p>
-          </>
-        )}
-      </div>
+      {page === 'weather' && (
+        <>
+          <button
+            onClick={() => setPage('home')}
+            style={{
+              marginBottom: 20,
+              backgroundColor: '#ccc',
+              padding: '5px 15px',
+              border: 'none',
+              borderRadius: 5,
+              cursor: 'pointer'
+            }}
+          >
+            🏠 Retour à l'accueil
+          </button>
+          <Meteo />
+        </>
+      )}
+
+      {page === 'conseils' && (
+        <>
+          <button
+            onClick={() => setPage('home')}
+            style={{
+              marginBottom: 20,
+              backgroundColor: '#ccc',
+              padding: '5px 15px',
+              border: 'none',
+              borderRadius: 5,
+              cursor: 'pointer'
+            }}
+          >
+            🏠 Retour à l'accueil
+          </button>
+          <Conseils />
+        </>
+      )}
+      {page === 'cultures' && (
+        <>
+          <button
+            onClick={() => setPage('home')}
+            style={{
+              marginBottom: 20,
+              backgroundColor: '#ccc',
+              padding: '5px 15px',
+              border: 'none',
+              borderRadius: 5,
+              cursor: 'pointer'
+            }}
+          >
+            🏠 Retour à l'accueil
+          </button>
+          <Cultures />
+        </>
+      )}
+      
+      
     </div>
+    
   );
 }
 
