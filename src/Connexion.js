@@ -6,6 +6,23 @@ function Connexion({ apiBase, onLogin }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  const loginWithLocalStorage = () => {
+    const raw = localStorage.getItem('users');
+    const users = raw ? JSON.parse(raw) : [];
+    const found = users.find(u => (u.email || '').toLowerCase() === email.toLowerCase());
+    if (!found) {
+      setError("Utilisateur introuvable.");
+      return false;
+    }
+    if (found.motdepasse !== motdepasse) {
+      setError("Mot de passe invalide.");
+      return false;
+    }
+    const { motdepasse: _pwd, ...utilisateur } = found;
+    onLogin(utilisateur);
+    return true;
+  };
+
   const handleLogin = async () => {
     setError(null);
     if (!email || !motdepasse) {
@@ -17,18 +34,32 @@ function Connexion({ apiBase, onLogin }) {
       const res = await fetch(`${apiBase}/connexion.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, motdepasse }),
+        body: JSON.stringify({ email, motdepasse })
       });
+      if (!res.ok) {
+        // Fallback local si API non disponible
+        if (!loginWithLocalStorage()) {
+          setError(`Serveur indisponible (${res.status}).`);
+        }
+        return;
+      }
       const data = await res.json();
-      if (data.success) {
+      if (data && data.success) {
         onLogin(data.utilisateur);
       } else {
-        setError(data.message || "Échec de la connexion");
+        // Fallback sur localStorage en cas d'échec côté API
+        if (!loginWithLocalStorage()) {
+          setError((data && data.message) || "Échec de la connexion");
+        }
       }
-    } catch (e) {
-      setError("Impossible de contacter le serveur.");
+    } catch (_) {
+      // Réseau HS → fallback localStorage
+      if (!loginWithLocalStorage()) {
+        setError("Impossible de contacter le serveur.");
+      }
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   };
 
   return (

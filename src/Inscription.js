@@ -17,6 +17,20 @@ function Inscription({ apiBase, onSuccess }) {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const saveLocal = () => {
+    const raw = localStorage.getItem('users');
+    const users = raw ? JSON.parse(raw) : [];
+    const exists = users.some(u => (u.email || '').toLowerCase() === form.email.toLowerCase());
+    if (exists) {
+      setError("Un compte avec cet email existe déjà.");
+      return false;
+    }
+    users.push({ ...form });
+    localStorage.setItem('users', JSON.stringify(users));
+    onSuccess({ email: form.email, nom: form.nom, date_de_naissance: form.date_de_naissance, genre: form.genre, telephone: form.telephone });
+    return true;
+  };
+
   const handleSubmit = async () => {
     setError(null);
     if (!form.email || !form.nom || !form.motdepasse) {
@@ -30,21 +44,27 @@ function Inscription({ apiBase, onSuccess }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+      if (!res.ok) {
+        // Fallback local si API non dispo
+        if (!saveLocal()) {
+          setError(`Serveur indisponible (${res.status}).`);
+        }
+        return;
+      }
       const data = await res.json();
-      if (data.success) {
-        // après inscription, on peut automatiquement connecter : refaire appel à connexion ou renvoyer user minimal
-        onSuccess({
-          email: form.email,
-          nom: form.nom,
-          date_de_naissance: form.date_de_naissance,
-          genre: form.genre,
-          telephone: form.telephone
-        });
+      if (data && data.success) {
+        onSuccess({ email: form.email, nom: form.nom, date_de_naissance: form.date_de_naissance, genre: form.genre, telephone: form.telephone });
       } else {
-        setError(data.message || "Erreur inscription");
+        // Fallback local si l'API répond en erreur applicative
+        if (!saveLocal()) {
+          setError((data && data.message) || "Erreur inscription");
+        }
       }
     } catch (e) {
-      setError("Impossible de contacter le serveur.");
+      // Réseau HS → fallback local
+      if (!saveLocal()) {
+        setError("Impossible de contacter le serveur.");
+      }
     }
     setBusy(false);
   };
