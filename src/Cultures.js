@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import './Cultures.css';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import "./Cultures.css";
 
 const cropsList = [
   { name: "Apple", icon: "🍎" },
@@ -16,12 +17,73 @@ const cropsList = [
   { name: "Brinjal", icon: "🍆" },
 ];
 
-function Cultures() {
+function Cultures({ apiBase = "http://localhost/agrismart-api", user, language = 'fr' }) {
   const [selected, setSelected] = useState([]);
   const [message, setMessage] = useState("");
-  const [email, setEmail] = useState("siwar.menaa02@gmail.com");
+  const [email, setEmail] = useState(user?.email || "");
 
-  // Sélection/désélection d'une culture
+  const translations = {
+    fr: {
+      title: "Sélectionnez vos cultures",
+      email: "Email :",
+      save: "Enregistrer",
+      saveSuccess: "Cultures enregistrées avec succès !",
+      saveError: "Erreur lors de l'enregistrement.",
+      enterEmail: "Veuillez entrer votre email avant de sauvegarder."
+    },
+    en: {
+      title: "Select your crops",
+      email: "Email:",
+      save: "Save",
+      saveSuccess: "Crops saved successfully!",
+      saveError: "Error during saving.",
+      enterEmail: "Please enter your email before saving."
+    },
+    ar: {
+      title: "اختر محاصيلك",
+      email: "البريد الإلكتروني:",
+      save: "حفظ",
+      saveSuccess: "تم حفظ المحاصيل بنجاح!",
+      saveError: "خطأ أثناء الحفظ.",
+      enterEmail: "يرجى إدخال بريدك الإلكتروني قبل الحفظ."
+    }
+  };
+
+  const t = translations[language] || translations.fr;
+
+  useEffect(() => {
+    setEmail(user?.email || "");
+  }, [user]);
+
+  useEffect(() => {
+    const effectiveEmail = user?.email || email;
+    if (!effectiveEmail) return;
+
+    // 1) Charger depuis localStorage immédiatement pour ressenti rapide
+    const localKey = `cultures:${effectiveEmail}`;
+    const localData = localStorage.getItem(localKey);
+    if (localData) {
+      try {
+        const parsed = JSON.parse(localData);
+        if (Array.isArray(parsed)) setSelected(parsed);
+      } catch (_) {}
+    }
+
+    // 2) Tenter la synchro serveur
+    (async () => {
+      try {
+        const res = await axios.get(`${apiBase}/get_cultures.php`, { params: { email: effectiveEmail } });
+        if (res.data && Array.isArray(res.data.cultures)) {
+          setSelected(res.data.cultures);
+          localStorage.setItem(localKey, JSON.stringify(res.data.cultures));
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Load cultures failed', e);
+      }
+    })();
+  }, [apiBase, user, email]);
+
   const toggleCrop = (crop) => {
     if (selected.includes(crop)) {
       setSelected(selected.filter((c) => c !== crop));
@@ -30,81 +92,60 @@ function Cultures() {
     }
   };
 
-  const isSelected = (crop) => selected.includes(crop);
-
-  // Sauvegarde des cultures dans la base
   const saveCultures = async () => {
     if (!email) {
-      setMessage("Veuillez entrer votre email avant de sauvegarder.");
+      setMessage(t.enterEmail);
       return;
     }
 
     try {
-      const res = await fetch("http://localhost/agrismart-api/save_cultures.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          cultures: selected,
-        }),
-      });
+      const response = await axios.post(
+        `${apiBase}/save_cultures.php`,
+        { email, cultures: selected },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-      const data = await res.json();
-      setMessage(data.message || "Cultures enregistrées avec succès !");
-    } catch (err) {
-      setMessage("Erreur lors de l'enregistrement.");
+      setMessage(response.data.message || t.saveSuccess);
+      // Sauvegarde locale par compte
+      localStorage.setItem(`cultures:${email}`, JSON.stringify(selected));
+    } catch (error) {
+      console.error(error);
+      setMessage(t.saveError);
+      // Fallback: garder au moins en local
+      localStorage.setItem(`cultures:${email}`, JSON.stringify(selected));
     }
   };
 
   return (
     <div className="cultures-page">
-      <div className="cultures-header">
-        <h2>Sélectionnez vos cultures</h2>
-        <p>{selected.length}/8</p>
-      </div>
+      <h2>{t.title}</h2>
+      <p>{selected.length}/8</p>
 
-      {/* Champ email */}
-      <div className="email-input">
-        <label htmlFor="email">Entrez votre email :</label>
-        <input
-          type="email"
-          id="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="ex: exemple@gmail.com"
-          required
-        />
-      </div>
+      {!user?.email && (
+        <div className="email-input">
+          <label>{t.email}</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+      )}
 
-      {/* Cultures sélectionnées */}
-      <div className="selected-crops">
-        {selected.map((crop) => (
-          <span key={crop} className="selected-crop">
-            {crop}
-            <button onClick={() => toggleCrop(crop)}>✖</button>
-          </span>
-        ))}
-      </div>
-
-      {/* Grille des cultures disponibles */}
       <div className="crops-grid">
         {cropsList.map((crop) => (
           <div
             key={crop.name}
-            className={`crop-item ${isSelected(crop.name) ? "selected" : ""}`}
+            className={`crop-item ${selected.includes(crop.name) ? "selected" : ""}`}
             onClick={() => toggleCrop(crop.name)}
           >
-            <span className="crop-icon">{crop.icon}</span>
-            <span className="crop-name">{crop.name}</span>
+            <span>{crop.icon}</span> {crop.name}
           </div>
         ))}
       </div>
 
-      {/* Bouton enregistrer */}
-      <button className="save-button" onClick={saveCultures}>Save</button>
-
-      {/* Message d'erreur ou confirmation */}
-      {message && <p className="message">{message}</p>}
+      <button onClick={saveCultures}>{t.save}</button>
+      {message && <p>{message}</p>}
     </div>
   );
 }
